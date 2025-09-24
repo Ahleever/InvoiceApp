@@ -52,7 +52,7 @@
 <body>
     <h1>Generate Invoice (Web)</h1>
 
-    <form method="post" action="/generate" enctype="multipart/form-data"></form>>
+    <form id="invoiceForm" method="post" action="/generate" enctype="multipart/form-data"></form>>
     <div class="row">
         <div>
             <label>Customer Name</label>
@@ -80,7 +80,8 @@
                 placeholder="Description, Quantity, UnitPrice&#10;Upper Cabinets, 5, 1200&#10;Install, 1, 800"></textarea>
             <small>One item per line. Example shown above.</small>
         </div>
-
+        <input id="customer_name" name="customer_name" required />
+        <input id="customer_address" name="customer_address" required />
         <div id="json_box" style="display:none">
             <label>Items (JSON)</label>
             <textarea name="items_json" rows="8"
@@ -93,15 +94,45 @@
         <input type="file" name="dummy_file" accept=".txt" />
         <small>If provided, this will override form fields and items.</small>
     </div>
-    <button type="submit">Create PDF</button>
+    <input id="dummy_file" type="file" name="dummy_file" accept=".txt" />
+    <button id="submitBtn" type="submit">Create PDF</button>
     </form>
 
     <script>
-        function swapMode() {
-            const mode = document.getElementById('items_mode').value;
-            document.getElementById('csv_box').style.display = mode === 'csv' ? 'block' : 'none';
-            document.getElementById('json_box').style.display = mode === 'json' ? 'block' : 'none';
+        const form = document.getElementById('invoiceForm');
+        const nameEl = document.getElementById('customer_name');
+        const addrEl = document.getElementById('customer_address');
+        const fileEl = document.getElementById('dummy_file');
+
+        function usingDummy() {
+            return fileEl.files && fileEl.files.length > 0;
         }
+
+        // If a dummy file is chosen, remove required so the browser won't block submit
+        function syncRequired() {
+            const ud = usingDummy();
+            nameEl.required = !ud;
+            addrEl.required = !ud;
+        }
+
+        // Submit handler: ensure required flags are correct, then submit
+        form.addEventListener('submit', (e) => {
+            syncRequired();
+            // If not using dummy and fields are still invalid, let the browser show hints
+            if (!usingDummy() && !form.reportValidity()) {
+                // prevent silent failure
+                e.preventDefault();
+            }
+        });
+
+        // Optional: auto-submit when a dummy file is picked
+        fileEl.addEventListener('change', () => {
+            syncRequired();
+            if (usingDummy()) form.submit();
+        });
+
+        // initialize on load
+        syncRequired();
     </script>
 </body>
 
