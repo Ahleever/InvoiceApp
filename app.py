@@ -1,4 +1,3 @@
-# app.py
 from flask import Flask, render_template, request, send_file, abort
 from io import BytesIO
 import json, os
@@ -6,52 +5,68 @@ from invoice_core import generate_invoice_pdf
 
 app = Flask(__name__)
 
-@app.get("/")
-def index():
-    return render_template("form.html")
-
-def parse_items_csv(csv_text):
+def parse_items_txt(file_stream):
     """
-    CSV-like lines: Description, Quantity, UnitPrice
-    Example:
-      Upper Cabinets, 5, 1200
-      Install, 1, 800
+    Parse a dummy .txt file with format like:
+      Customer Name: John Doe
+      Customer Address: 123 Main St
+      Items:
+      Widget, 2, 15.00
+      Service, 1, 50.00
     """
     items = []
-    for line in csv_text.splitlines():
-        line = line.strip()
+    customer_name, customer_address = "", ""
+    items_section = False
+
+    for raw_line in file_stream.read().decode("utf-8").splitlines():
+        line = raw_line.strip()
         if not line:
             continue
-        parts = [p.strip() for p in line.split(",")]
-        if len(parts) != 3:
-            continue
-        desc, qty, price = parts
-        try:
-            items.append({"desc": desc, "qty": int(qty), "price": float(price)})
-        except Exception:
-            continue
-    return items
+        if line.startswith("Customer Name:"):
+            customer_name = line.replace("Customer Name:", "").strip()
+        elif line.startswith("Customer Address:"):
+            customer_address = line.replace("Customer Address:", "").strip()
+        elif line.startswith("Items:"):
+            items_section = True
+        elif items_section:
+            parts = line.split(",")
+            if len(parts) == 3:
+                desc, qty, price = parts
+                try:
+                    qty = int(qty.strip())
+                    price = float(price.strip())
+                    items.append({"desc": desc.strip(), "qty": qty, "price": price})
+                except Exception:
+                    continue
+    return customer_name, customer_address, items
 
 @app.post("/generate")
 def generate():
-    customer_name = (request.form.get("customer_name") or "").strip()
-    customer_address = (request.form.get("customer_address") or "").strip()
-    tax_rate = float(request.form.get("tax_rate") or "0")
-    items_mode = request.form.get("items_mode", "csv")
+    dummy_file = request.files.get("dummy_file")
 
-    if items_mode == "json":
-        try:
-            items = json.loads(request.form.get("items_json") or "[]")
-        except json.JSONDecodeError:
-            return abort(400, "Invalid JSON for items.")
+    if dummy_file:
+        # If a dummy TXT file is uploaded, parse it
+        customer_name, customer_address, items = parse_items_txt(dummy_file.stream)
+        tax_rate = float(request.form.get("tax_rate") or "0")
     else:
+        # Otherwise use form fields
+        customer_name = (request.form.get("customer_name") or "").strip()
+        customer_address = (request.form.get("customer_address") or "").strip()
+        tax_rate = float(request.form.get("tax_rate") or "0")
         items_csv = request.form.get("items_csv") or ""
-        items = parse_items_csv(items_csv)
+        items = []
+        for line in items_csv.splitlines():
+            parts = [p.strip() for p in line.split(",")]
+            if len(parts) == 3:
+                desc, qty, price = parts
+                try:
+                    items.append({"desc": desc, "qty": int(qty), "price": float(price)})
+                except:
+                    pass
 
     if not customer_name or not customer_address or not items:
         return abort(400, "Missing customer info or items.")
 
-    # watermark in /static
     wm_path = os.path.join(app.static_folder, "watermark.png")
     if not os.path.exists(wm_path):
         wm_path = None

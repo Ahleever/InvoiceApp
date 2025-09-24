@@ -52,44 +52,48 @@
 <body>
     <h1>Generate Invoice (Web)</h1>
 
-    <form method="post" action="/generate">
-        <div class="row">
-            <div>
-                <label>Customer Name</label>
-                <input name="customer_name" required />
-            </div>
-            <div>
-                <label>Tax Rate (%)</label>
-                <input name="tax_rate" type="number" step="0.01" value="0.0" />
-            </div>
+    <form method="post" action="/generate" enctype="multipart/form-data"></form>>
+    <div class="row">
+        <div>
+            <label>Customer Name</label>
+            <input name="customer_name" required />
+        </div>
+        <div>
+            <label>Tax Rate (%)</label>
+            <input name="tax_rate" type="number" step="0.01" value="0.0" />
+        </div>
+    </div>
+
+    <label>Customer Address</label>
+    <input name="customer_address" required />
+
+    <div class="card">
+        <label>Items Input Mode</label>
+        <select name="items_mode" id="items_mode" onchange="swapMode()">
+            <option value="csv" selected>CSV lines (desc, qty, price)</option>
+            <option value="json">JSON (advanced)</option>
+        </select>
+
+        <div id="csv_box">
+            <label>Items (CSV)</label>
+            <textarea name="items_csv" rows="8"
+                placeholder="Description, Quantity, UnitPrice&#10;Upper Cabinets, 5, 1200&#10;Install, 1, 800"></textarea>
+            <small>One item per line. Example shown above.</small>
         </div>
 
-        <label>Customer Address</label>
-        <input name="customer_address" required />
-
-        <div class="card">
-            <label>Items Input Mode</label>
-            <select name="items_mode" id="items_mode" onchange="swapMode()">
-                <option value="csv" selected>CSV lines (desc, qty, price)</option>
-                <option value="json">JSON (advanced)</option>
-            </select>
-
-            <div id="csv_box">
-                <label>Items (CSV)</label>
-                <textarea name="items_csv" rows="8"
-                    placeholder="Description, Quantity, UnitPrice&#10;Upper Cabinets, 5, 1200&#10;Install, 1, 800"></textarea>
-                <small>One item per line. Example shown above.</small>
-            </div>
-
-            <div id="json_box" style="display:none">
-                <label>Items (JSON)</label>
-                <textarea name="items_json" rows="8"
-                    placeholder='[{"desc":"Upper Cabinets","qty":5,"price":1200},{"desc":"Install","qty":1,"price":800}]'></textarea>
-                <small>Must be valid JSON with fields: desc, qty, price.</small>
-            </div>
+        <div id="json_box" style="display:none">
+            <label>Items (JSON)</label>
+            <textarea name="items_json" rows="8"
+                placeholder='[{"desc":"Upper Cabinets","qty":5,"price":1200},{"desc":"Install","qty":1,"price":800}]'></textarea>
+            <small>Must be valid JSON with fields: desc, qty, price.</small>
         </div>
-
-        <button type="submit">Create PDF</button>
+    </div>
+    <div class="card">
+        <label>Load Dummy Data (TXT file)</label>
+        <input type="file" name="dummy_file" accept=".txt" />
+        <small>If provided, this will override form fields and items.</small>
+    </div>
+    <button type="submit">Create PDF</button>
     </form>
 
     <script>
